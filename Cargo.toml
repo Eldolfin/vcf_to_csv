@@ -7,5 +7,4 @@ edition = "2021"
 
 [dependencies]
 csv = "1.2.1"
-ical = "0.8.0"
-vcard_parser = "0.2.1"
+ical = { version = "0.8.0", default-features = false, features = ["vcard"] }
