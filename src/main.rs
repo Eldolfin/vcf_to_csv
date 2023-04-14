@@ -2,6 +2,18 @@ use ical::{parser::vcard::component::VcardContact, VcardParser};
 use std::{env::args, error::Error, fs::File, io::Read};
 
 const OUTPUT_FILENAME: &str = "output.csv";
+const FILTERED_PROPS: &[&str] = &["EMAIL", "VERSION", "PRODID"];
+
+macro_rules! skip_none {
+    ($res:expr) => {
+        match $res {
+            Some(val) => val,
+            None => {
+                continue;
+            }
+        }
+    };
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let filename = args().nth(1).expect("Usage: vcf_to_csv FILENAME");
@@ -28,19 +40,22 @@ fn main() -> Result<(), Box<dyn Error>> {
             .map_err(|err| eprintln!("error while parsing file: {err}"))
             .unwrap();
 
-        let email = get_property_and_remove(&mut vc, "EMAIL");
-        let name = get_property_and_remove(&mut vc, "FN");
+        let email = skip_none!(get_property_and_remove(&mut vc, "EMAIL"));
+        let name = skip_none!(get_property_and_remove(&mut vc, "FN"));
 
         let other_properties = vc
             .properties
             .iter()
             .filter_map(|p| {
                 // maps a property to json format
-                Some(format!(
-                    "\"{name}\":\"{value}\"",
-                    name = p.name,
-                    value = p.value.clone()?
-                ))
+                let name = &p.name;
+                let value = p.value.clone()?;
+
+                if FILTERED_PROPS.contains(&name.as_str()) {
+                    None
+                } else {
+                    Some(format!("\"{name}\":\"{value}\""))
+                }
             })
             .collect::<Vec<_>>()
             .join(", ");
@@ -56,15 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn get_property_and_remove(vc: &mut VcardContact, property: &str) -> String {
-    if let Some(index) = vc.properties.iter().position(|x| x.name == property) {
-        let prop = vc.properties.remove(index);
-        if let Some(text) = prop.value {
-            text
-        } else {
-            panic!("Could get the {property} data for {prop} 😨");
-        }
-    } else {
-        panic!("Could not find a `{property}` property for {vc:?} 😨");
-    }
+fn get_property_and_remove(vc: &mut VcardContact, property: &str) -> Option<String> {
+    let index = vc.properties.iter().position(|x| x.name == property)?;
+    vc.properties.remove(index).value
 }
