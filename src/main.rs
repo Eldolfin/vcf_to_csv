@@ -31,7 +31,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Parse vcards
     let vcards = VcardParser::new(contents.as_bytes());
 
-    let mut csv = csv::Writer::from_path(OUTPUT_FILENAME)?;
+    // let mut csv = csv::Writer::from_path(OUTPUT_FILENAME)?;
+    let mut csv = csv::WriterBuilder::new()
+        // we add necessary quotes ourselves
+        .quote_style(csv::QuoteStyle::Never)
+        .from_path(OUTPUT_FILENAME)?;
 
     csv.write_record(["email", "name", "attributes"])?;
 
@@ -42,6 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let email = skip_none!(get_property_and_remove(&mut vc, "EMAIL"));
         let name = skip_none!(get_property_and_remove(&mut vc, "FN"));
+        let name = format!("\"{name}\"");
 
         let other_properties = vc
             .properties
@@ -60,8 +65,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .collect::<Vec<_>>()
             .join(", ");
 
-        // adds {} around json
-        let other_properties = format!("{{{other_properties}}}");
+        // adds "{...}" around json
+        let other_properties = format!("\"{{{other_properties}}}\"");
 
         csv.write_record([email, name, other_properties])?;
     }
