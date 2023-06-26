@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .quote_style(csv::QuoteStyle::Never)
         .from_path(OUTPUT_FILENAME)?;
 
-    csv.write_record(["email", "name", "attributes"])?;
+    csv.write_record(["email", "name"])?;
 
     for vc in vcards {
         let mut vc = vc
@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // adds "{...}" around json
         let other_properties = format!("\"{{{other_properties}}}\"");
 
-        csv.write_record([email, name, other_properties])?;
+        csv.write_record([email, name])?;
     }
 
     println!("Done converting to {OUTPUT_FILENAME} 😎");
